@@ -11,10 +11,7 @@ import javax.swing.JLabel; // etiqueta de texto
 import javax.swing.JPanel; // panel contenedor
 import javax.swing.WindowConstants; // constantes para cierre de ventana
 import java.awt.BorderLayout; // layout de bordes
-/**
- *
- * @author carol
- */
+
 public class AboutDialog extends JDialog { // diálogo simple 'Acerca de'
 
     public AboutDialog(final MainFrame parent) { // constructor que recibe ventana padre
