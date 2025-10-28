@@ -1,7 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package ui;
 
 import domain.DirectedGraph; // snapshot del grafo
@@ -26,7 +23,10 @@ import java.util.Objects; // validaciones
 import java.util.Set; // set
 import java.util.concurrent.atomic.AtomicInteger; // contador atómico
 
-
+/**
+ * Swing component embedding a GraphStream viewer panel to display the social
+ * graph.
+ */
 public class GraphPanel extends JPanel { // panel que encapsula la vista del grafo
 
     private static final String UI_CLASS = "ui.class"; // atributo para clase CSS del nodo
@@ -218,4 +218,3 @@ public class GraphPanel extends JPanel { // panel que encapsula la vista del gra
         return viewPanel; // retorna viewPanel
     }
 }
-
