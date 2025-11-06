@@ -1,0 +1,11 @@
+usuarios
+@alice
+@bob
+@carla
+@david
+relaciones
+@alice, @bob
+@bob, @carla
+@carla, @alice
+@bob, @david
+
