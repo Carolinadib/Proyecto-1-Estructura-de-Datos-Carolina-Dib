@@ -1,42 +1,41 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+package util; // paleta de colores y utilidad para construir stylesheet para GraphStream
+
+/**
+ * Paleta de colores y utilidad para construir hojas de estilo (stylesheet)
+ * utilizadas por GraphStream para colorear componentes fuertemente conectadas
+ * en la visualización.
  */
-package util;
-
-import java.util.List; // lista inmutable de colores
-
 public final class ColorPalette { // clase utilitaria para colores
 
-    private static final List<String> COLORS = List.of( // lista de colores hexadecimales
-            "#1f77b4",
-            "#ff7f0e",
-            "#2ca02c",
-            "#d62728",
-            "#9467bd",
-            "#8c564b",
-            "#e377c2",
-            "#7f7f7f",
-            "#bcbd22",
-            "#17becf",
-            "#fdd835",
-            "#ff6f61",
-            "#6b5b95",
-            "#88b04b",
-            "#ffa500"
-    );
+    private static final String[] COLORS = new String[]{ // arreglo de colores hexadecimales
+        "#1f77b4",
+        "#ff7f0e",
+        "#2ca02c",
+        "#d62728",
+        "#9467bd",
+        "#8c564b",
+        "#e377c2",
+        "#7f7f7f",
+        "#bcbd22",
+        "#17becf",
+        "#fdd835",
+        "#ff6f61",
+        "#6b5b95",
+        "#88b04b",
+        "#ffa500"
+    };
 
     private ColorPalette() { // previene instanciación
         throw new UnsupportedOperationException("Utility class");
     }
 
     public static String colorForIndex(final int index) { // obtiene color seguro por índice
-        final int safeIndex = Math.floorMod(index, COLORS.size()); // modulo que maneja índices negativos
-        return COLORS.get(safeIndex); // retorna color
+        final int safeIndex = Math.floorMod(index, COLORS.length); // modulo que maneja índices negativos
+        return COLORS[safeIndex]; // retorna color
     }
 
-    public static List<String> palette() { // expone la paleta completa
-        return COLORS; // retorna lista inmutable
+    public static String[] palette() { // expone la paleta completa como arreglo
+        return COLORS.clone(); // retorna copia para mantener inmutabilidad
     }
 
     public static String buildStylesheet(final int componentCount) { // construye stylesheet CSS para GraphStream según número de componentes

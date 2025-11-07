@@ -1,8 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package ui;
+package ui; // diálogo para eliminar un usuario
 
 import javax.swing.BorderFactory; // fábrica de bordes
 import javax.swing.JButton; // botón
@@ -15,22 +11,25 @@ import javax.swing.WindowConstants; // constantes ventana
 import java.awt.BorderLayout; // layout principal
 import java.awt.GridLayout; // layout de formulario
 import java.awt.event.ActionEvent; // evento acción
-import java.util.List; // lista de handles
-import java.util.Optional; // valor opcional
 
+/**
+ * Diálogo modal que permite seleccionar un usuario existente para eliminarlo
+ * del grafo. Retorna el handle seleccionado o {@code null} si el usuario
+ * cancela.
+ */
 public class RemoveUserDialog extends JDialog { // diálogo que permite elegir un usuario a eliminar
 
     private final JComboBox<String> handleCombo; // combo con handles disponibles
     private String selectedHandle; // handle seleccionado al aceptar
 
-    public RemoveUserDialog(final MainFrame parent, final List<String> handles) { // constructor
+    public RemoveUserDialog(final MainFrame parent, final String[] handles) { // constructor
         super(parent, "Eliminar usuario", true); // modal
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE); // disposición
         setResizable(false); // no redimensionable
         setLayout(new BorderLayout()); // layout
         final JPanel form = new JPanel(new GridLayout(1, 2, 8, 8)); // formulario 1x2
         form.add(new JLabel("Usuario:")); // etiqueta
-        handleCombo = new JComboBox<>(handles.toArray(String[]::new)); // combo con handles
+        handleCombo = new JComboBox<>(handles == null ? new String[0] : handles.clone()); // combo con handles
         form.add(handleCombo); // añade
         form.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12)); // padding
         add(form, BorderLayout.CENTER); // añade form
@@ -57,7 +56,7 @@ public class RemoveUserDialog extends JDialog { // diálogo que permite elegir u
         dispose(); // cierra diálogo
     }
 
-    public Optional<String> getSelectedHandle() { // devuelve handle seleccionado si existe
-        return Optional.ofNullable(selectedHandle); // puede ser vacío
+    public String getSelectedHandle() { // devuelve handle seleccionado o null
+        return selectedHandle; // puede ser null si canceló
     }
 }

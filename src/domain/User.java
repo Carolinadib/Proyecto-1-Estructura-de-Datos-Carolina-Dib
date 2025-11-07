@@ -1,18 +1,29 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package domain;
+package domain; // clase de modelo para representar un usuario
 
+/**
+ * Envoltorio ligero que representa un usuario mediante su handle (por ejemplo
+ * {@code @pepe}). Proporciona operaciones básicas como acceso al handle y
+ * métodos {@code equals/hashCode}.
+ */
 public final class User { // envoltorio ligero para un handle de usuario
 
     private final String handle; // identificador del usuario (ej. @usuario)
 
+    /**
+     * Construye un {@code User} a partir de su handle.
+     *
+     * @param handle handle válido del usuario (ej. "@pepe")
+     */
     public User(final String handle) { // constructor valida formato
         GraphUtils.validateHandle(handle); // valida que no sea nulo, no vacío y empiece con '@'
         this.handle = handle; // asigna handle
     }
 
+    /**
+     * Obtiene el handle del usuario.
+     *
+     * @return handle del usuario
+     */
     public String getHandle() { // getter del handle
         return handle; // retorna el identificador
     }

@@ -1,8 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package ui;
+package ui; // ventana principal de la aplicación
 
 import domain.DirectedGraph; // snapshot del grafo
 import services.GraphService; // servicio del grafo
@@ -35,11 +31,14 @@ import java.awt.event.WindowEvent; // evento de ventana
 import java.io.File; // representación de archivo
 import java.io.IOException; // excepción E/S
 import java.nio.file.Path; // ruta
-import java.util.List; // lista
-import java.util.Locale; // locale para minúsculas
-import java.util.Map; // mapa
-import java.util.Objects; // validaciones
+// avoid java.util imports here; use arrays and service types instead
+import domain.User; // usuario del dominio
 
+/**
+ * Ventana principal de la aplicación que contiene menús, toolbar, la vista del
+ * grafo y la barra de estado. Coordina acciones del usuario y delega en
+ * {@link services.GraphService} para operaciones sobre el grafo.
+ */
 public class MainFrame extends JFrame { // ventana principal que contiene menús, toolbar y panel del grafo
 
     private static final String TITLE_BASE = "Kosaraju-Nexus"; // título base
@@ -73,8 +72,14 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
 
     public MainFrame(final GraphService graphService, final UnsavedChangesTracker changesTracker) { // constructor
         super(TITLE_BASE); // setea título base
-        this.graphService = Objects.requireNonNull(graphService, "graphService"); // valida inyección
-        this.changesTracker = Objects.requireNonNull(changesTracker, "changesTracker"); // valida
+        if (graphService == null) {
+            throw new IllegalArgumentException("graphService");
+        }
+        if (changesTracker == null) {
+            throw new IllegalArgumentException("changesTracker");
+        }
+        this.graphService = graphService;
+        this.changesTracker = changesTracker;
         this.graphPanel = new GraphPanel(); // crea panel de grafo
         initializeUi(); // inicializa todos los componentes UI
     }
@@ -228,7 +233,7 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
 
     public void refreshGraph() { // refresca la vista del grafo usando snapshot del servicio
         final DirectedGraph snapshot = graphService.getGraphSnapshot(); // obtiene copia del grafo
-        final Map<String, Integer> mapping = graphService.getLastSccMapping(); // mapeo SCC si existe
+        final services.GraphService.SccMapping mapping = graphService.getLastSccMapping(); // mapeo SCC si existe
         graphPanel.renderGraph(snapshot, mapping.isEmpty() ? null : mapping); // renderiza (pasa null si vacío)
         updateStatusBar(); // actualiza información en la barra de estado
     }
@@ -262,7 +267,7 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
     }
 
     private void handleSave() { // guarda en el archivo asociado o pide ruta si no existe
-        if (graphService.getCurrentFile().isEmpty()) { // si no hay archivo asociado
+        if (graphService.getCurrentFile() == null) { // si no hay archivo asociado
             handleSaveAs(); // invoca guardar como
             return; // y sale
         }
@@ -304,7 +309,8 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
     private void handleAddUser() { // flujo para agregar un usuario (diálogo + servicio)
         final AddUserDialog dialog = new AddUserDialog(this); // crea diálogo
         dialog.setVisible(true); // muestra modalmente
-        dialog.getUserHandle().ifPresent(handle -> { // si el usuario ingresó un handle
+        final String handle = dialog.getUserHandle(); // nullable
+        if (handle != null) {
             try {
                 graphService.addUser(handle); // agrega en servicio
                 changesTracker.markDirty(); // marca cambios
@@ -312,18 +318,24 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
             } catch (IllegalArgumentException ex) { // si handle no válido o existe
                 Alerts.warn(this, MENU_TEXT_ADD_USER, ex.getMessage()); // muestra advertencia
             }
-        });
+        }
     }
 
     private void handleRemoveUser() { // flujo para eliminar un usuario
-        final List<String> handles = graphService.getUsers().stream().map(user -> user.getHandle()).toList(); // obtiene lista de handles
-        if (handles.isEmpty()) { // si no hay usuarios
+        final User[] users = graphService.getUsers();
+        if (users.length == 0) { // si no hay usuarios
             Alerts.warn(this, MENU_TEXT_REMOVE_USER, "No hay usuarios para eliminar."); // muestra advertencia
             return; // nada que hacer
         }
+        final String[] handles = new String[users.length];
+        for (int i = 0; i < users.length; i++) {
+            handles[i] = users[i].getHandle();
+        }
         final RemoveUserDialog dialog = new RemoveUserDialog(this, handles); // muestra diálogo de selección
         dialog.setVisible(true); // modal
-        dialog.getSelectedHandle().ifPresent(handle -> { // si seleccionó uno
+        final String selected = dialog.getSelectedHandle();
+        if (selected != null) {
+            final String handle = selected;
             if (!Alerts.confirmDeletion(this, "¿Eliminar usuario " + handle + " y sus relaciones?")) { // confirma eliminación
                 return; // si no confirma, aborta
             }
@@ -334,18 +346,23 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
             } catch (IllegalArgumentException ex) { // error al eliminar
                 Alerts.warn(this, MENU_TEXT_REMOVE_USER, ex.getMessage()); // muestra advertencia
             }
-        });
+        }
     }
 
     private void handleAddRelation() { // flujo para agregar relación
-        final List<String> handles = graphService.getUsers().stream().map(user -> user.getHandle()).toList(); // lista de handles
-        if (handles.size() < 2) { // requiere al menos dos usuarios
+        final User[] users = graphService.getUsers();
+        if (users.length < 2) { // requiere al menos dos usuarios
             Alerts.warn(this, MENU_TEXT_ADD_RELATION, "Se requieren al menos dos usuarios."); // advierte
             return; // aborta
         }
+        final String[] handles = new String[users.length];
+        for (int i = 0; i < users.length; i++) {
+            handles[i] = users[i].getHandle();
+        }
         final AddRelationDialog dialog = new AddRelationDialog(this, handles); // diálogo selección origen/destino
         dialog.setVisible(true); // muestra
-        dialog.getRelation().ifPresent(relation -> { // si hizo selección
+        final AddRelationDialog.RelationSelection relation = dialog.getRelation();
+        if (relation != null) { // si hizo selección
             try {
                 graphService.addRelation(relation.origin(), relation.destination()); // agrega relación
                 changesTracker.markDirty(); // marca cambios
@@ -353,18 +370,19 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
             } catch (IllegalArgumentException ex) { // si no se pudo agregar
                 Alerts.warn(this, MENU_TEXT_ADD_RELATION, ex.getMessage()); // muestra advertencia
             }
-        });
+        }
     }
 
     private void handleRemoveRelation() { // flujo para eliminar relación
-        final var relations = graphService.getRelations(); // obtiene lista de relaciones
-        if (relations.isEmpty()) { // si no hay relaciones
+        final services.GraphService.Relation[] relations = graphService.getRelations(); // obtiene arreglo de relaciones
+        if (relations.length == 0) { // si no hay relaciones
             Alerts.warn(this, MENU_TEXT_REMOVE_RELATION, "No hay relaciones que eliminar."); // advierte
             return; // aborta
         }
         final RemoveRelationDialog dialog = new RemoveRelationDialog(this, relations); // diálogo selección de relación
         dialog.setVisible(true); // muestra
-        dialog.getRelation().ifPresent(relation -> { // si seleccionó
+        final services.GraphService.Relation relation = dialog.getRelation(); // puede ser null
+        if (relation != null) { // si seleccionó
             if (!Alerts.confirmDeletion(this, "¿Eliminar relación " + relation.from() + " → " + relation.to() + "?")) { // confirma
                 return; // aborta si no
             }
@@ -375,7 +393,7 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
             } catch (IllegalArgumentException ex) { // error al eliminar
                 Alerts.warn(this, MENU_TEXT_REMOVE_RELATION, ex.getMessage()); // muestra advertencia
             }
-        });
+        }
     }
 
     private void handleDetectScc() { // ejecuta detección de SCCs y pinta resultados
@@ -405,13 +423,15 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
         }
     }
 
-    private void deliverWarnings(final List<String> warnings) { // muestra advertencias en bloque
-        if (warnings.isEmpty()) { // si no hay nada
+    private void deliverWarnings(final String[] warnings) { // muestra advertencias en bloque
+        if (warnings == null || warnings.length == 0) { // si no hay nada
             return; // sale
         }
         final String lineSeparator = System.lineSeparator(); // separador de líneas
         final StringBuilder message = new StringBuilder(WARNINGS_HEADER).append(lineSeparator); // construye mensaje
-        warnings.forEach(warning -> message.append(WARNINGS_BULLET).append(warning).append(lineSeparator)); // añade viñetas
+        for (int i = 0; i < warnings.length; i++) {
+            message.append(WARNINGS_BULLET).append(warnings[i]).append(lineSeparator);
+        }
         Alerts.warn(this, "Advertencias", message.toString()); // muestra diálogo de advertencias
     }
 
@@ -420,12 +440,15 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
         chooser.setFileFilter(new FileNameExtensionFilter("Archivos de texto", "txt")); // filtra .txt
         chooser.setAcceptAllFileFilterUsed(false); // no permitir otros tipos
         chooser.setFileSelectionMode(JFileChooser.FILES_ONLY); // solo archivos
-        graphService.getCurrentFile().map(Path::toFile).ifPresent(chooser::setSelectedFile); // si hay archivo asociado, selecciónalo
+        final Path current = graphService.getCurrentFile();
+        if (current != null) {
+            chooser.setSelectedFile(current.toFile());
+        }
         return chooser; // retorna chooser
     }
 
     private File ensureTxtExtension(final File file) { // asegura extensión .txt al guardar
-        final String lowerName = file.getName().toLowerCase(Locale.ROOT); // nombre en minúsculas
+        final String lowerName = file.getName().toLowerCase(); // nombre en minúsculas (default locale)
         if (lowerName.endsWith(TXT_EXTENSION)) { // si ya tiene .txt
             return file; // retorna tal cual
         }
@@ -435,14 +458,12 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
     }
 
     private void updateStatusBar() { // actualiza etiquetas informativas en la barra de estado
-        final String fileName = graphService.getCurrentFile()
-                .map(Path::getFileName)
-                .map(Path::toString)
-                .orElse(DEFAULT_FILE_NAME); // obtiene nombre del archivo o 'Memoria'
+        final Path current = graphService.getCurrentFile();
+        final String fileName = current == null ? DEFAULT_FILE_NAME : current.getFileName().toString(); // obtiene nombre del archivo o 'Memoria'
         statusFileLabel.setText(STATUS_PREFIX_FILE + fileName); // actualiza etiqueta archivo
         statusUsersLabel.setText(STATUS_PREFIX_USERS + graphService.getUserCount()); // actualiza count usuarios
         statusRelationsLabel.setText(STATUS_PREFIX_RELATIONS + graphService.getRelationCount()); // actualiza count relaciones
-        final int sccCount = graphService.getLastComponents().size(); // obtiene número de SCCs detectadas
+        final int sccCount = graphService.getLastComponents().length; // obtiene número de SCCs detectadas
         statusSccLabel.setText(STATUS_PREFIX_SCC + sccCount); // actualiza etiqueta SCC
         if (detectSccMenuItem != null) { // habilita opción detectar SCC si hay usuarios
             detectSccMenuItem.setEnabled(graphService.getUserCount() > 0);
@@ -460,10 +481,8 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
         if (!graphService.hasUnsavedChanges() && !changesTracker.hasUnsavedChanges()) { // si no hay cambios en ambos
             return true; // no hay nada que preguntar
         }
-        final String fileName = graphService.getCurrentFile()
-                .map(Path::getFileName)
-                .map(Path::toString)
-                .orElse(UNSAVED_FILE_NAME); // nombre para mostrar en diálogo
+        final Path current = graphService.getCurrentFile();
+        final String fileName = current == null ? UNSAVED_FILE_NAME : current.getFileName().toString(); // nombre para mostrar en diálogo
         final int choice = Alerts.confirmSaveDiscardOrCancel(this, fileName); // muestra diálogo personalizado
         if (choice == JOptionPane.CANCEL_OPTION) { // si canceló
             return false; // aborta operación solicitada
@@ -492,4 +511,3 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
         });
     }
 }
-

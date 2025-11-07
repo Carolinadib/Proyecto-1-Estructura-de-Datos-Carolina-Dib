@@ -1,5 +1,4 @@
-
-package ui;
+package ui; // panel que muestra el grafo usando GraphStream
 
 import domain.DirectedGraph; // snapshot del grafo
 import util.ColorPalette; // paleta de colores para componentes
@@ -16,12 +15,7 @@ import org.graphstream.ui.view.camera.Camera; // cámara para manipular vista
 
 import javax.swing.JPanel; // contenedor Swing
 import java.awt.BorderLayout; // layout principal
-import java.util.LinkedHashSet; // set con orden
-import java.util.List; // lista
-import java.util.Map; // mapa
-import java.util.Objects; // validaciones
-import java.util.Set; // set
-import java.util.concurrent.atomic.AtomicInteger; // contador atómico
+import services.GraphService; // SccMapping type
 
 /**
  * Swing component embedding a GraphStream viewer panel to display the social
@@ -35,7 +29,7 @@ public class GraphPanel extends JPanel { // panel que encapsula la vista del gra
     private final Graph graph; // grafo subyacente de GraphStream
     private final Viewer viewer; // viewer que maneja la visualización
     private final ViewPanel viewPanel; // panel Swing que contiene la vista
-    private Set<String> lastUsers = new LinkedHashSet<>(); // usuarios la última vez renderizados
+    private String[] lastUsers = new String[0]; // usuarios la última vez renderizados (orden fijo)
     private int lastEdgeCount; // número de aristas la última vez
 
     /**
@@ -75,48 +69,105 @@ public class GraphPanel extends JPanel { // panel que encapsula la vista del gra
      * @param snapshot graph snapshot
      * @param sccMapping optional mapping from handle to SCC id (may be null)
      */
-    public void renderGraph(final DirectedGraph snapshot, final Map<String, Integer> sccMapping) { // renderiza un snapshot del grafo
-        Objects.requireNonNull(snapshot, "snapshot"); // valida
-        final Map<String, List<String>> adjacency = snapshot.getAdjacencyView(); // obtiene adyacencia inmutable
-        final Set<String> users = new LinkedHashSet<>(adjacency.keySet()); // conjunto de usuarios actual
+    public void renderGraph(final DirectedGraph snapshot, final GraphService.SccMapping sccMapping) { // renderiza un snapshot del grafo
+        if (snapshot == null) {
+            throw new IllegalArgumentException("snapshot");
+        }
+        final DirectedGraph.AdjacencyView adjacency = snapshot.getAdjacencyView(); // obtiene adyacencia inmutable
+        final String[] usersArr = adjacency.users();
         final int edgeCount = snapshot.getEdgeCount(); // número de aristas
-        final Map<String, Integer> mapping = (sccMapping == null || sccMapping.isEmpty()) ? null : sccMapping; // mapeo opcional
-        final int componentCount = mapping == null ? 0 : (int) mapping.values().stream().distinct().count(); // cantidad de componentes detectadas
+        final GraphService.SccMapping mapping = (sccMapping == null || sccMapping.isEmpty()) ? null : sccMapping; // mapeo opcional
+        final int componentCount;
+        if (mapping == null) {
+            componentCount = 0;
+        } else {
+            // contar ids distintos en mapping.componentIds
+            final int[] ids = mapping.componentIds();
+            int max = -1;
+            for (int id : ids) {
+                if (id > max) {
+                    max = id;
+                }
+            }
+            if (max < 0) {
+                componentCount = 0;
+            } else {
+                final boolean[] seen = new boolean[max + 1];
+                int distinct = 0;
+                for (int id : ids) {
+                    if (!seen[id]) {
+                        seen[id] = true;
+                        distinct++;
+                    }
+                }
+                componentCount = distinct;
+            }
+        }
         final String stylesheet = ColorPalette.buildStylesheet(componentCount); // construye stylesheet según colores necesarios
         graph.setAttribute(UI_STYLESHEET, stylesheet); // aplica stylesheet
 
-        if (canReuseStructure(users, edgeCount, mapping)) { // intenta reutilizar estructura si no cambió topología
-            recolorNodes(users, mapping); // solo recolorea nodos
+        if (canReuseStructure(usersArr, edgeCount, mapping)) { // intenta reutilizar estructura si no cambió topología
+            recolorNodes(usersArr, mapping); // solo recolorea nodos
         } else {
             rebuildGraph(adjacency, mapping, stylesheet); // reconstruye todo el grafo en la vista
         }
-        lastUsers = new LinkedHashSet<>(users); // guarda estado para próxima renderización
+        lastUsers = usersArr == null ? new String[0] : usersArr.clone(); // guarda estado para próxima renderización
         lastEdgeCount = edgeCount; // guarda conteo de aristas
     }
 
-    private boolean canReuseStructure(final Set<String> users, final int edgeCount, final Map<String, Integer> mapping) { // decide si se puede reutilizar la estructura existente
+    private boolean canReuseStructure(final String[] users, final int edgeCount, final GraphService.SccMapping mapping) { // decide si se puede reutilizar la estructura existente
         if (mapping == null) { // si no hay mapeo SCC
             return false; // no reutilizar (deseamos reconstruir para aplicar estilo por componentes)
         }
-        return !lastUsers.isEmpty() && lastUsers.equals(users) && lastEdgeCount == edgeCount; // solo reutiliza si usuarios y aristas no cambiaron
+        if (users == null) {
+            return false;
+        }
+        if (lastUsers == null) {
+            return false;
+        }
+        if (lastEdgeCount != edgeCount) {
+            return false;
+        }
+        if (lastUsers.length != users.length) {
+            return false;
+        }
+        for (int i = 0; i < users.length; i++) {
+            if (!lastUsers[i].equals(users[i])) {
+                return false;
+            }
+        }
+        return true; // mismo conjunto y orden
     }
 
-    private void rebuildGraph(final Map<String, List<String>> adjacency,
-            final Map<String, Integer> mapping,
+    private void rebuildGraph(final DirectedGraph.AdjacencyView adjacency,
+            final GraphService.SccMapping mapping,
             final String stylesheet) { // limpia y reconstruye la estructura visual
         graph.clear(); // borra nodos y aristas actuales
         graph.setAttribute(UI_STYLESHEET, stylesheet); // aplica stylesheet actualizado
-        adjacency.keySet().forEach(user -> addOrUpdateNode(user, mapping)); // añade/actualiza nodos
-        final AtomicInteger edgeCounter = new AtomicInteger(); // contador para ids de aristas
-        adjacency.forEach((from, neighbors) -> neighbors.forEach(to -> {
-            final String edgeId = "e" + edgeCounter.incrementAndGet() + ":" + from + "->" + to; // id único por arista
-            graph.addEdge(edgeId, from, to, true); // crea arista dirigida
-        }));
+        final String[] users = adjacency.users();
+        for (String user : users) {
+            addOrUpdateNode(user, mapping);
+        }
+        int edgeCounter = 0; // contador para ids de aristas
+        final String[][] neighbors = adjacency.neighbors();
+        for (int i = 0; i < users.length; i++) {
+            final String from = users[i];
+            final String[] neigh = neighbors[i];
+            for (int j = 0; j < neigh.length; j++) {
+                final String to = neigh[j];
+                edgeCounter++;
+                final String edgeId = "e" + edgeCounter + ":" + from + "->" + to; // id único por arista
+                graph.addEdge(edgeId, from, to, true); // crea arista dirigida
+            }
+        }
         // Aplicar un layout 2D estático y plano (sin movimiento). Usamos un layout circular simple.
-        applyStaticLayout(adjacency.keySet()); // asigna posiciones fijas a nodos
+        applyStaticLayout(adjacency.users()); // asigna posiciones fijas a nodos
     }
 
-    private void recolorNodes(final Set<String> users, final Map<String, Integer> mapping) { // actualiza etiquetas y clases CSS de nodos existentes
+    private void recolorNodes(final String[] users, final GraphService.SccMapping mapping) { // actualiza etiquetas y clases CSS de nodos existentes
+        if (users == null) {
+            return;
+        }
         for (String user : users) { // itera usuarios
             final Node node = graph.getNode(user); // obtiene nodo por id (handle)
             if (node != null) { // si existe
@@ -126,7 +177,7 @@ public class GraphPanel extends JPanel { // panel que encapsula la vista del gra
         }
     }
 
-    private void addOrUpdateNode(final String handle, final Map<String, Integer> mapping) { // añade un nodo si no existe o lo actualiza
+    private void addOrUpdateNode(final String handle, final GraphService.SccMapping mapping) { // añade un nodo si no existe o lo actualiza
         Node node = graph.getNode(handle); // intenta obtener nodo
         if (node == null) { // si no existe
             node = graph.addNode(handle); // lo crea
@@ -138,11 +189,11 @@ public class GraphPanel extends JPanel { // panel que encapsula la vista del gra
         applyNodeClass(node, mapping); // aplica clase CSS
     }
 
-    private void applyNodeClass(final Node node, final Map<String, Integer> mapping) { // asigna clase CSS al nodo según su SCC
+    private void applyNodeClass(final Node node, final GraphService.SccMapping mapping) { // asigna clase CSS al nodo según su SCC
         if (mapping != null) { // si hay mapeo
-            final Integer componentId = mapping.get(node.getId()); // obtiene id de componente para este nodo
-            if (componentId != null) { // si pertenece a una componente
-                node.setAttribute(UI_CLASS, "scc-" + componentId); // asigna clase scc-N
+            final int id = mapping.findComponentIdFor(node.getId()); // obtiene id de componente para este nodo
+            if (id >= 0) { // si pertenece a una componente
+                node.setAttribute(UI_CLASS, "scc-" + id); // asigna clase scc-N
                 return; // fin
             }
         }
@@ -154,11 +205,11 @@ public class GraphPanel extends JPanel { // panel que encapsula la vista del gra
      * Las coordenadas se asignan en el atributo "xy" para que la vista muestre
      * un grafo plano y sin animaciones.
      */
-    private void applyStaticLayout(final Set<String> nodes) { // asigna posiciones en círculo
-        if (nodes == null || nodes.isEmpty()) { // nada que hacer
+    private void applyStaticLayout(final String[] nodes) { // asigna posiciones en círculo
+        if (nodes == null || nodes.length == 0) { // nada que hacer
             return;
         }
-        final int n = nodes.size(); // número de nodos
+        final int n = nodes.length; // número de nodos
         final double radius = Math.max(1.0, n / 2.0); // radio escalado según cantidad de nodos
         int i = 0; // índice para distribuir ángulos
         for (String id : nodes) { // itera nodos
@@ -191,7 +242,9 @@ public class GraphPanel extends JPanel { // panel que encapsula la vista del gra
      * @param layoutType desired layout
      */
     public void applyLayout(final LayoutType layoutType) { // permite aplicar layouts soportados
-        Objects.requireNonNull(layoutType, "layoutType"); // valida
+        if (layoutType == null) {
+            throw new IllegalArgumentException("layoutType");
+        }
         switch (layoutType) {
             case SPRING -> { // layout tipo resorte (dinámico)
                 SpringBox springBox = new SpringBox(); // instancia SpringBox

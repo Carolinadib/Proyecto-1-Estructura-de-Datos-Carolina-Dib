@@ -1,8 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package ui;
+package ui; // diálogo para agregar un usuario
 
 import domain.GraphUtils; // utilidades del dominio para validar handles
 
@@ -17,9 +13,12 @@ import javax.swing.WindowConstants; // constantes de ventana
 import java.awt.BorderLayout; // layout principal
 import java.awt.GridLayout; // layout de formulario
 import java.awt.event.ActionEvent; // evento de acción
-import java.util.Optional; // valor opcional
 
-
+/**
+ * Diálogo modal para solicitar al usuario el handle de un nuevo usuario que
+ * será agregado al grafo. Retorna el handle ingresado o {@code null} si el
+ * usuario cancela.
+ */
 public class AddUserDialog extends JDialog { // diálogo que solicita un nuevo handle
 
     private static final int FIELD_COLUMNS = 20; // ancho en columnas del campo
@@ -27,6 +26,11 @@ public class AddUserDialog extends JDialog { // diálogo que solicita un nuevo h
     private final JTextField handleField; // campo para ingresar el handle
     private String userHandle; // resultado si se aceptó
 
+    /**
+     * Crea y configura el diálogo para ingresar un nuevo handle.
+     *
+     * @param parent ventana padre para centrar el diálogo
+     */
     public AddUserDialog(final MainFrame parent) { // constructor
         super(parent, "Agregar usuario", true); // modal
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE); // disposición
@@ -69,7 +73,13 @@ public class AddUserDialog extends JDialog { // diálogo que solicita un nuevo h
         }
     }
 
-    public Optional<String> getUserHandle() { // retorna handle ingresado si existe
-        return Optional.ofNullable(userHandle); // puede ser vacío
+    /**
+     * Devuelve el handle ingresado por el usuario o {@code null} si el diálogo
+     * fue cancelado.
+     *
+     * @return handle ingresado o {@code null}
+     */
+    public String getUserHandle() { // retorna handle ingresado si existe (nullable)
+        return userHandle;
     }
 }

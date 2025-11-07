@@ -1,5 +1,5 @@
 
-package app;
+package app; // paquete principal que contiene la clase Main
 
 import services.GraphService; // servicio que gestiona el grafo y operaciones asociadas
 import util.Alerts; // utilidades para mostrar cuadros de diálogo/alertas
@@ -13,6 +13,10 @@ import javax.swing.UIManager; // permite configurar el look-and-feel
 import javax.swing.UnsupportedLookAndFeelException; // excepción si el L&F no está disponible
 import java.io.IOException; // excepción de entrada/salida
 
+/**
+ * Punto de entrada de la aplicación Kosaraju-Nexus. Inicializa servicios, carga
+ * el grafo inicial y despliega la interfaz gráfica.
+ */
 public final class Main { // clase de arranque de la aplicación, no instanciable
 
     private static final String INITIAL_RESOURCE = "initial_data.txt"; // recurso por defecto con datos iniciales
@@ -36,7 +40,7 @@ public final class Main { // clase de arranque de la aplicación, no instanciabl
             changesTracker.markClean(); // marca que no hay cambios pendientes
             final MainFrame frame = new MainFrame(graphService, changesTracker); // crea la ventana principal y la inyecta con servicios
             frame.showUi(); // muestra la interfaz al usuario
-            if (!loadResult.warnings().isEmpty()) { // si hubo advertencias al cargar
+            if (loadResult.warnings().length > 0) { // si hubo advertencias al cargar
                 SwingUtilities.invokeLater(() -> Alerts.warn(frame, "Advertencias", String.join("\n", loadResult.warnings()))); // muestra advertencias en un diálogo
             }
         } catch (IOException ex) { // captura errores de E/S al cargar recurso

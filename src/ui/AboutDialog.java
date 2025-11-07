@@ -1,8 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package ui;
+package ui; // paquete con componentes de interfaz
 
 import javax.swing.BorderFactory; // factory para bordes
 import javax.swing.JButton; // botón Swing
@@ -12,6 +8,10 @@ import javax.swing.JPanel; // panel contenedor
 import javax.swing.WindowConstants; // constantes para cierre de ventana
 import java.awt.BorderLayout; // layout de bordes
 
+/**
+ * Diálogo "Acerca de" que muestra información básica del proyecto, versión y
+ * autores. Es un diálogo modal sencillo utilizado desde el menú de ayuda.
+ */
 public class AboutDialog extends JDialog { // diálogo simple 'Acerca de'
 
     public AboutDialog(final MainFrame parent) { // constructor que recibe ventana padre

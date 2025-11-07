@@ -1,13 +1,13 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package util;
+package util; // utilidades para mostrar diálogos de alerta y confirmación
 
 import javax.swing.JOptionPane; // diálogos estándar Swing
 import java.awt.Component; // componente padre para centrar diálogos
-import java.util.Objects; // utilidades para nulos
 
+/**
+ * Utilidad para mostrar diálogos de información, advertencia, error y
+ * confirmación usando {@link javax.swing.JOptionPane}. Proporciona métodos
+ * estáticos para uso desde la UI.
+ */
 public final class Alerts { // clase utilitaria no instanciable para mostrar mensajes
 
     private Alerts() { // previene instanciación
@@ -27,8 +27,8 @@ public final class Alerts { // clase utilitaria no instanciable para mostrar men
     }
 
     public static int confirmSaveDiscardOrCancel(final Component parent, final String fileName) { // diálogo personalizado guardar/no guardar/cancelar
-        final String message = "El archivo '" + Objects.requireNonNullElse(fileName, "Sin título")
-                + "' tiene cambios sin guardar. ¿Desea guardarlos?"; // mensaje que incluye nombre de archivo
+        final String safeName = fileName == null ? "Sin título" : fileName;
+        final String message = "El archivo '" + safeName + "' tiene cambios sin guardar. ¿Desea guardarlos?"; // mensaje que incluye nombre de archivo
         final Object[] options = {"Guardar", "No guardar", "Cancelar"}; // opciones en ese orden
         final int choice = JOptionPane.showOptionDialog(parent,
                 message,
@@ -53,4 +53,3 @@ public final class Alerts { // clase utilitaria no instanciable para mostrar men
         return result == JOptionPane.YES_OPTION; // true si confirmó
     }
 }
-

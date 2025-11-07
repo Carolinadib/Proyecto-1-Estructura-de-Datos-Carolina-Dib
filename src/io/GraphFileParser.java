@@ -1,5 +1,4 @@
-
-package io;
+package io; // paquete para entrada/salida de grafos
 
 import domain.DirectedGraph; // modelo de grafo dirigido
 import domain.GraphUtils; // utilidades para grafos
@@ -9,32 +8,39 @@ import java.io.IOException; // excepción de E/S
 import java.io.Reader; // interfaz lector
 import java.nio.file.Files; // utilidades de archivos
 import java.nio.file.Path; // representación de rutas
-import java.util.ArrayList; // listas dinámicas
-import java.util.LinkedHashSet; // conjunto con orden de inserción
-import java.util.List; // interfaz lista
-import java.util.Locale; // para minúsculas locales
-import java.util.Objects; // validaciones
-import java.util.Optional; // valor opcional
-import java.util.Set; // interfaz set
 
+/**
+ * Parser de archivos de grafos sin depender de java.util en la API pública.
+ */
 public class GraphFileParser { // parsea archivos con formato específico (usuarios/relaciones)
 
     private static final String SECTION_USERS = "usuarios"; // marcador de sección usuarios
     private static final String SECTION_RELATIONS = "relaciones"; // marcador de sección relaciones
 
     public Result parse(final Path path) throws IOException { // parsea desde un Path
-        Objects.requireNonNull(path, "El archivo no puede ser nulo"); // valida
+        if (path == null) {
+            throw new IllegalArgumentException("El archivo no puede ser nulo");
+        }
         try (BufferedReader reader = Files.newBufferedReader(path)) { // abre lector con autocierre
-            return parse(reader, Optional.of(path)); // parsea y registra origen
+            return parse(reader, path); // parsea y registra origen
         }
     }
 
+    /**
+     * Parsea el contenido desde un {@link java.io.Reader} y construye el grafo.
+     *
+     * @param reader lector del contenido
+     * @return resultado con grafo y advertencias
+     * @throws IOException si ocurre un error leyendo
+     */
     public Result parse(final Reader reader) throws IOException { // parsea desde un Reader
-        Objects.requireNonNull(reader, "El lector no puede ser nulo"); // valida
-        return parse(reader, Optional.empty()); // sin origen físico
+        if (reader == null) {
+            throw new IllegalArgumentException("El lector no puede ser nulo");
+        }
+        return parse(reader, null); // sin origen físico
     }
 
-    private Result parse(final Reader reader, final Optional<Path> origin) throws IOException { // núcleo del parseo
+    private Result parse(final Reader reader, final Path origin) throws IOException { // núcleo del parseo
         final BufferedReader bufferedReader = reader instanceof BufferedReader br ? br : new BufferedReader(reader); // asegura BufferedReader
         final ParseAccumulator accumulator = new ParseAccumulator(origin); // acumulador del parse
         String line; // variable para leer líneas
@@ -53,23 +59,30 @@ public class GraphFileParser { // parsea archivos con formato específico (usuar
     private record RelationTuple(String from, String to, boolean skipped) { // tupla para representar una relación parseada
 
         RelationTuple   {
-            Objects.requireNonNull(from, "from"); // valida campos no nulos
-            Objects.requireNonNull(to, "to");
+            if (from == null) {
+                throw new IllegalArgumentException("from"); // valida campos no nulos
+
+            }
+            if (to == null) {
+                throw new IllegalArgumentException("to");
+            }
         }
     }
 
     private static final class ParseAccumulator { // clase interna para acumular estado durante el parseo
 
-        private final Optional<Path> origin; // origen del parseo (si existe)
-        private final Set<String> users = new LinkedHashSet<>(); // usuarios declarados, sin duplicados
-        private final List<RelationTuple> relations = new ArrayList<>(); // relaciones parseadas
-        private final List<String> warnings = new ArrayList<>(); // advertencias encontradas
+        private final Path origin; // origen del parseo (si existe)
+        private final StringSet users = new StringSet(); // usuarios declarados, sin duplicados
+        private RelationTuple[] relations = new RelationTuple[8]; // relaciones parseadas
+        private int relationsSize = 0;
+        private String[] warnings = new String[8]; // advertencias encontradas
+        private int warningsSize = 0;
         private Section section = Section.NONE; // sección actual
         private boolean usersSectionSeen; // si se vio etiqueta usuarios
         private boolean relationsSectionSeen; // si se vio etiqueta relaciones
         private int lineNumber; // contador de línea para mensajes
 
-        private ParseAccumulator(final Optional<Path> origin) { // constructor con origen opcional
+        private ParseAccumulator(final Path origin) { // constructor con origen opcional
             this.origin = origin; // guarda origen
         }
 
@@ -97,7 +110,7 @@ public class GraphFileParser { // parsea archivos con formato específico (usuar
         }
 
         private Section sectionFromMarker(final String trimmedLine) { // detecta si la línea es marcador de sección
-            final String lower = trimmedLine.toLowerCase(Locale.ROOT); // normaliza a minúsculas
+            final String lower = trimmedLine.toLowerCase(); // normaliza a minúsculas (locale-default)
             if (SECTION_USERS.equals(lower)) { // coincide con 'usuarios'
                 return Section.USERS; // devuelve enum USERS
             }
@@ -114,7 +127,7 @@ public class GraphFileParser { // parsea archivos con formato específico (usuar
                 case RELATIONS ->
                     handleRelationLine(trimmed); // procesa relación
                 case NONE ->
-                    warnings.add(formatWarning("Línea ignorada antes de declarar la sección 'usuarios': " + trimmed)); // aviso si contenido fuera de secciones
+                    addWarning(formatWarning("Línea ignorada antes de declarar la sección 'usuarios': " + trimmed)); // aviso si contenido fuera de secciones
                 default ->
                     throw new IllegalStateException("Sección desconocida: " + section); // caso inesperado
             }
@@ -124,17 +137,18 @@ public class GraphFileParser { // parsea archivos con formato específico (usuar
             try {
                 GraphUtils.validateHandle(trimmed); // valida formato del handle
                 if (!users.add(trimmed)) { // intenta añadir; si ya existía
-                    warnings.add(formatWarning("Usuario duplicado ignorado: " + trimmed)); // registra advertencia
+                    addWarning(formatWarning("Usuario duplicado ignorado: " + trimmed)); // registra advertencia
                 }
             } catch (IllegalArgumentException ex) { // si handle inválido
-                warnings.add(formatWarning(ex.getMessage())); // añade advertencia con mensaje
+                addWarning(formatWarning(ex.getMessage())); // añade advertencia con mensaje
             }
         }
 
         private void handleRelationLine(final String trimmed) throws IOException { // procesa línea de relación
             final RelationTuple tuple = parseRelation(trimmed); // parsea la relación
             if (!tuple.skipped()) { // si no se marcó para ignorarse
-                relations.add(tuple); // añade a la lista de relaciones
+                ensureRelationsCapacity();
+                relations[relationsSize++] = tuple; // añade a la lista de relaciones
             }
         }
 
@@ -148,7 +162,7 @@ public class GraphFileParser { // parsea archivos con formato específico (usuar
             GraphUtils.validateHandle(from); // valida origen
             GraphUtils.validateHandle(to); // valida destino
             if (from.equalsIgnoreCase(to)) { // relación autorefencial
-                warnings.add(formatWarning("Se ignoró la relación por ser auto-referencial: " + line)); // registra advertencia
+                addWarning(formatWarning("Se ignoró la relación por ser auto-referencial: " + line)); // registra advertencia
                 return new RelationTuple(from, to, true); // devuelve tupla marcada como 'skipped'
             }
             return new RelationTuple(from, to, false); // tupla válida
@@ -157,12 +171,17 @@ public class GraphFileParser { // parsea archivos con formato específico (usuar
         private Result buildResult() throws IOException { // construye el resultado final después del parseo
             validateSections(); // valida que ambas secciones hayan sido encontradas
             if (users.isEmpty()) { // si no hubo usuarios
-                warnings.add("No se declararon usuarios en la sección 'usuarios'."); // añade advertencia
+                addWarning("No se declararon usuarios en la sección 'usuarios'."); // añade advertencia
             }
             final DirectedGraph graph = new DirectedGraph(); // crea grafo vacío
-            users.forEach(graph::addUser); // añade usuarios declarados
-            final Set<String> autoCreated = new LinkedHashSet<>(); // usuarios que serán creados automáticamente desde relaciones
-            for (RelationTuple relation : relations) { // procesa relaciones
+            final String[] declaredUsers = users.toArray();
+            for (int i = 0; i < declaredUsers.length; i++) {
+                graph.addUser(declaredUsers[i]); // añade usuarios declarados
+
+            }
+            final StringSet autoCreated = new StringSet(); // usuarios que serán creados automáticamente desde relaciones
+            for (int r = 0; r < relationsSize; r++) { // procesa relaciones
+                final RelationTuple relation = relations[r];
                 if (!graph.containsUser(relation.from())) { // si origen no existe
                     autoCreated.add(relation.from()); // añade a autoCreated
                     graph.addUser(relation.from()); // crea usuario
@@ -173,8 +192,12 @@ public class GraphFileParser { // parsea archivos con formato específico (usuar
                 }
                 graph.addRelation(relation.from(), relation.to()); // añade arista al grafo
             }
-            autoCreated.forEach(handle -> warnings.add("Usuario auto-creado desde relaciones: " + handle)); // reporta usuarios auto-creados
-            return new Result(graph, List.copyOf(warnings), Set.copyOf(autoCreated)); // retorna resultado inmutable
+            final String[] autoCreatedArr = autoCreated.toArray();
+            for (int i = 0; i < autoCreatedArr.length; i++) {
+                addWarning("Usuario auto-creado desde relaciones: " + autoCreatedArr[i]); // reporta usuarios auto-creados
+
+            }
+            return new Result(graph, warningsClone(), autoCreatedArr); // retorna resultado inmutable
         }
 
         private void validateSections() throws IOException { // valida que ambas secciones existan
@@ -184,12 +207,82 @@ public class GraphFileParser { // parsea archivos con formato específico (usuar
         }
 
         private String formatWarning(final String message) { // formatea un mensaje de advertencia con origen y línea
-            return origin.map(path -> path + ":" + lineNumber + ": " + message)
-                    .orElse("Línea " + lineNumber + ": " + message); // si no hay origen, usa número de línea
+            if (origin != null) {
+                return origin + ":" + lineNumber + ": " + message;
+            }
+            return "Línea " + lineNumber + ": " + message; // si no hay origen, usa número de línea
+        }
+
+        private void addWarning(final String msg) {
+            if (warningsSize >= warnings.length) {
+                final String[] n = new String[warnings.length * 2];
+                for (int i = 0; i < warnings.length; i++) {
+                    n[i] = warnings[i];
+                }
+                warnings = n;
+            }
+            warnings[warningsSize++] = msg;
+        }
+
+        private String[] warningsClone() {
+            final String[] out = new String[warningsSize];
+            for (int i = 0; i < warningsSize; i++) {
+                out[i] = warnings[i];
+            }
+            return out;
+        }
+
+        private void ensureRelationsCapacity() {
+            if (relationsSize >= relations.length) {
+                final RelationTuple[] n = new RelationTuple[relations.length * 2];
+                for (int i = 0; i < relations.length; i++) {
+                    n[i] = relations[i];
+                }
+                relations = n;
+            }
         }
     }
 
-    public record Result(DirectedGraph graph, List<String> warnings, Set<String> autoCreated) { // resultado del parseo
+    public record Result(DirectedGraph graph, String[] warnings, String[] autoCreated) { // resultado del parseo
 
+    }
+
+    // Implementación mínima de conjunto de Strings que mantiene orden de inserción y evita duplicados.
+    private static final class StringSet {
+
+        private String[] data = new String[8];
+        private int size = 0;
+
+        boolean add(final String s) {
+            if (s == null) {
+                return false;
+            }
+            for (int i = 0; i < size; i++) {
+                if (data[i].equals(s)) {
+                    return false;
+                }
+            }
+            if (size >= data.length) {
+                final String[] n = new String[data.length * 2];
+                for (int i = 0; i < data.length; i++) {
+                    n[i] = data[i];
+                }
+                data = n;
+            }
+            data[size++] = s;
+            return true;
+        }
+
+        boolean isEmpty() {
+            return size == 0;
+        }
+
+        String[] toArray() {
+            final String[] out = new String[size];
+            for (int i = 0; i < size; i++) {
+                out[i] = data[i];
+            }
+            return out;
+        }
     }
 }

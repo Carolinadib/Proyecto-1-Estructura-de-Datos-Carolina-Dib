@@ -1,120 +1,340 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+package domain; // paquete con clases del modelo de dominio
+
+/**
+ * Grafo dirigido simple que representa usuarios como nodos y relaciones
+ * "seguimiento" como aristas dirigidas. Implementa operaciones básicas para
+ * agregar/eliminar usuarios y relaciones y ofrece una vista inmutable de la
+ * adyacencia.
  */
-package domain;
+public class DirectedGraph {
 
-import java.util.ArrayList; // lista dinámica para adyacencias
-import java.util.Collections; // utilidades de colecciones
-import java.util.LinkedHashMap; // mapa con orden de inserción
-import java.util.LinkedHashSet; // set con orden de inserción
-import java.util.List; // interfaz de lista
-import java.util.Map; // interfaz de mapa
-import java.util.Objects; // utilidades para validar nulos
-import java.util.Set; // interfaz de conjunto
+    // Representación interna: arreglo de nodos (orden de inserción)
+    private Node[] nodes;
+    private int size; // número de nodos presentes
 
-public class DirectedGraph { // representación simple de grafo dirigido
-
-    private final Map<String, List<String>> adjacency; // mapa: nodo -> lista de vecinos
-
-    public DirectedGraph() { // constructor vacío
-        this.adjacency = new LinkedHashMap<>(); // mantiene orden predecible de iteración
+    /**
+     * Crea un grafo dirigido vacío.
+     */
+    public DirectedGraph() {
+        this.nodes = new Node[8];
+        this.size = 0;
     }
 
-    public DirectedGraph(final DirectedGraph other) { // copia profunda de otro grafo
-        Objects.requireNonNull(other, "other graph cannot be null"); // valida no nulo
-        this.adjacency = new LinkedHashMap<>(); // nuevo mapa para la copia
-        other.adjacency.forEach((user, neighbors)
-                -> this.adjacency.put(user, new ArrayList<>(neighbors))); // copia listas de vecinos
-    }
-
-    public boolean addUser(final String userHandle) { // agrega un usuario/nodo
-        final String normalized = normalizeHandle(userHandle); // normaliza y valida handle
-        if (adjacency.containsKey(normalized)) { // si ya existe, no hace nada
-            return false; // indica que no se agregó
+    /**
+     * Crea una copia profunda del grafo dado.
+     *
+     * @param other grafo a copiar
+     */
+    public DirectedGraph(final DirectedGraph other) {
+        if (other == null) {
+            throw new IllegalArgumentException("other graph cannot be null");
         }
-        adjacency.put(normalized, new ArrayList<>()); // crea lista vacía de vecinos
-        return true; // indica agregado con éxito
-    }
-
-    public boolean removeUser(final String userHandle) { // elimina un usuario y sus referencias
-        final String normalized = normalizeHandle(userHandle); // normaliza
-        if (!adjacency.containsKey(normalized)) { // si no existe, no hace nada
-            return false; // indica que no se eliminó
+        this.nodes = new Node[Math.max(8, other.size)];
+        for (int i = 0; i < other.size; i++) {
+            Node n = other.nodes[i];
+            this.nodes[i] = new Node(n.handle, n.neighbors == null ? new String[0] : n.neighbors.clone());
         }
-        adjacency.remove(normalized); // elimina la clave
-        adjacency.values().forEach(neighbors -> neighbors.remove(normalized)); // elimina aristas entrantes
-        return true; // éxito
+        this.size = other.size;
     }
 
-    public boolean addRelation(final String fromHandle, final String toHandle) { // agrega arista dirigida
-        final String from = normalizeHandle(fromHandle); // normaliza origen
-        final String to = normalizeHandle(toHandle); // normaliza destino
-        ensureUserExists(from); // asegura que exista el nodo origen
-        ensureUserExists(to); // asegura que exista el nodo destino
-        final List<String> neighbors = adjacency.get(from); // obtiene lista de vecinos del origen
-        if (neighbors.contains(to)) { // si ya existe la relación, no agrega
-            return false; // indica que no se agregó
+    /**
+     * Añade un usuario identificado por su handle si no existe.
+     *
+     * @param userHandle handle del usuario (ej. "@pepe")
+     * @return {@code true} si el usuario fue añadido, {@code false} si ya
+     * existía
+     */
+    public boolean addUser(final String userHandle) {
+        final String normalized = normalizeHandle(userHandle);
+        if (indexOf(normalized) >= 0) {
+            return false;
         }
-        neighbors.add(to); // agrega el destino a la lista de vecinos
-        return true; // éxito
+        ensureCapacity();
+        nodes[size++] = new Node(normalized, new String[0]);
+        return true;
     }
 
-    public boolean removeRelation(final String fromHandle, final String toHandle) { // elimina arista
-        final String from = normalizeHandle(fromHandle); // normaliza origen
-        final String to = normalizeHandle(toHandle); // normaliza destino
-        if (!adjacency.containsKey(from)) { // si origen no existe
-            return false; // nothing to remove
+    /**
+     * Elimina un usuario y todas sus referencias entrantes.
+     *
+     * @param userHandle handle del usuario a eliminar
+     * @return {@code true} si el usuario existía y fue eliminado
+     */
+    public boolean removeUser(final String userHandle) {
+        final String normalized = normalizeHandle(userHandle);
+        final int idx = indexOf(normalized);
+        if (idx < 0) {
+            return false;
         }
-        return adjacency.get(from).remove(to); // intenta remover el destino y retorna si lo hizo
-    }
-
-    public List<String> getNeighbors(final String userHandle) { // devuelve vecinos de un nodo
-        final String normalized = normalizeHandle(userHandle); // normaliza
-        final List<String> neighbors = adjacency.get(normalized); // obtiene lista
-        if (neighbors == null) { // si no existe el nodo
-            return Collections.emptyList(); // retorna lista vacía inmodificable
+        // eliminar nodo
+        for (int i = idx; i < size - 1; i++) {
+            nodes[i] = nodes[i + 1];
         }
-        return Collections.unmodifiableList(neighbors); // retorna vista de solo lectura
-    }
-
-    public Set<String> getUsers() { // lista de usuarios (nodos)
-        return Collections.unmodifiableSet(adjacency.keySet()); // vista inmodificable del conjunto de claves
-    }
-
-    public int getEdgeCount() { // cuenta total de aristas
-        return adjacency.values().stream().mapToInt(List::size).sum(); // suma tamaños de todas las listas
-    }
-
-    public Map<String, List<String>> getAdjacencyView() { // vista inmutable del mapa de adyacencia
-        final Map<String, List<String>> snapshot = new LinkedHashMap<>(); // snapshot para no exponer estructura interna
-        adjacency.forEach((key, value) -> snapshot.put(key, Collections.unmodifiableList(new ArrayList<>(value)))); // copia listas y las vuelve inmutables
-        return Collections.unmodifiableMap(snapshot); // retorna mapa inmutable
-    }
-
-    public boolean containsUser(final String userHandle) { // verifica existencia de usuario
-        return adjacency.containsKey(normalizeHandle(userHandle)); // busca clave normalizada
-    }
-
-    public void ensureUsersPresent(final Iterable<String> userHandles) { // asegura que una colección de handles exista como usuarios
-        final Set<String> normalizedHandles = new LinkedHashSet<>(); // conjunto para evitar duplicados
-        for (String handle : userHandles) {
-            normalizedHandles.add(normalizeHandle(handle)); // normaliza y añade
+        nodes[size - 1] = null;
+        size--;
+        // eliminar referencias entrantes
+        for (int i = 0; i < size; i++) {
+            nodes[i].removeNeighbor(normalized);
         }
-        normalizedHandles.forEach(this::addUser); // agrega cada handle (addUser ignora duplicados existentes)
+        return true;
     }
 
-    private void ensureUserExists(final String userHandle) { // lanza si un usuario no existe
-        if (!adjacency.containsKey(userHandle)) {
-            throw new IllegalArgumentException("Usuario no registrado: " + userHandle); // error si falta usuario
+    /**
+     * Añade una relación dirigida desde {@code fromHandle} hacia
+     * {@code toHandle}.
+     *
+     * @param fromHandle handle del usuario origen
+     * @param toHandle handle del usuario destino
+     * @return {@code true} si la relación fue añadida; {@code false} si ya
+     * existía
+     */
+    public boolean addRelation(final String fromHandle, final String toHandle) {
+        final String from = normalizeHandle(fromHandle);
+        final String to = normalizeHandle(toHandle);
+        final int iFrom = indexOf(from);
+        final int iTo = indexOf(to);
+        ensureUserExistsIndex(iFrom, from);
+        ensureUserExistsIndex(iTo, to);
+        return nodes[iFrom].addNeighborIfAbsent(to);
+    }
+
+    /**
+     * Elimina la relación dirigida especificada.
+     *
+     * @param fromHandle handle del usuario origen
+     * @param toHandle handle del usuario destino
+     * @return {@code true} si la relación existía y fue eliminada
+     */
+    public boolean removeRelation(final String fromHandle, final String toHandle) {
+        final String from = normalizeHandle(fromHandle);
+        final String to = normalizeHandle(toHandle);
+        final int iFrom = indexOf(from);
+        if (iFrom < 0) {
+            return false;
+        }
+        return nodes[iFrom].removeNeighbor(to);
+    }
+
+    /**
+     * Devuelve los vecinos como copia de un arreglo (inmutable para el
+     * llamador).
+     */
+    /**
+     * Obtiene una copia del arreglo de vecinos (destinos) del usuario dado.
+     *
+     * @param userHandle handle del usuario
+     * @return arreglo (copia) de handles vecinos; arreglo vacío si no existe
+     */
+    public String[] getNeighbors(final String userHandle) {
+        final String normalized = normalizeHandle(userHandle);
+        final int idx = indexOf(normalized);
+        if (idx < 0) {
+            return new String[0];
+        }
+        return nodes[idx].neighbors.clone();
+    }
+
+    /**
+     * Devuelve los usuarios en orden de inserción.
+     */
+    /**
+     * Devuelve los usuarios en orden de inserción.
+     *
+     * @return arreglo con los handles de los usuarios
+     */
+    public String[] getUsers() {
+        final String[] result = new String[size];
+        for (int i = 0; i < size; i++) {
+            result[i] = nodes[i].handle;
+        }
+        return result;
+    }
+
+    /**
+     * Cuenta el número total de aristas salientes en el grafo.
+     *
+     * @return número total de relaciones (aristas)
+     */
+    public int getEdgeCount() {
+        int sum = 0;
+        for (int i = 0; i < size; i++) {
+            sum += nodes[i].neighbors.length;
+        }
+        return sum;
+    }
+
+    /**
+     * Retorna una vista inmutable simple de la adyacencia: un arreglo de
+     * usuarios y un arreglo paralelo de arreglos de vecinos.
+     */
+    /**
+     * Retorna una vista inmutable simple de la adyacencia.
+     *
+     * @return {@link AdjacencyView} que contiene usuarios y vecinos
+     */
+    public AdjacencyView getAdjacencyView() {
+        final String[] users = getUsers();
+        final String[][] neighbors = new String[size][];
+        for (int i = 0; i < size; i++) {
+            neighbors[i] = nodes[i].neighbors.clone();
+        }
+        return new AdjacencyView(users, neighbors);
+    }
+
+    /**
+     * Indica si un usuario con el handle dado existe en el grafo.
+     *
+     * @param userHandle handle a comprobar
+     * @return {@code true} si existe, {@code false} en caso contrario
+     */
+    public boolean containsUser(final String userHandle) {
+        return indexOf(normalizeHandle(userHandle)) >= 0;
+    }
+
+    /**
+     * Asegura que los handles pasados existan; acepta un arreglo de strings.
+     */
+    /**
+     * Asegura que los handles pasados existan en el grafo (los crea si no).
+     *
+     * @param userHandles arreglo de handles a asegurar
+     */
+    public void ensureUsersPresent(final String[] userHandles) {
+        if (userHandles == null) {
+            throw new IllegalArgumentException("userHandles cannot be null");
+        }
+        for (int i = 0; i < userHandles.length; i++) {
+            final String normalized = normalizeHandle(userHandles[i]);
+            addUser(normalized);
         }
     }
 
-    private String normalizeHandle(final String handle) { // valida y normaliza un handle (trim)
-        final String normalized = Objects.requireNonNull(handle, "El handle no puede ser nulo").trim(); // valida no nulo y recorta espacios
-        if (normalized.isEmpty()) { // si queda vacío
-            throw new IllegalArgumentException("El handle no puede estar vacío"); // error
+    private void ensureUserExistsIndex(final int idx, final String handle) {
+        if (idx < 0) {
+            throw new IllegalArgumentException("Usuario no registrado: " + handle);
         }
-        return normalized; // retorna el handle normalizado
     }
+
+    private int indexOf(final String handle) {
+        for (int i = 0; i < size; i++) {
+            if (nodes[i].handle.equals(handle)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private String normalizeHandle(final String handle) {
+        if (handle == null) {
+            throw new IllegalArgumentException("El handle no puede ser nulo");
+        }
+        final String normalized = handle.trim();
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException("El handle no puede estar vacío");
+        }
+        return normalized;
+    }
+
+    private void ensureCapacity() {
+        if (size >= nodes.length) {
+            final Node[] n = new Node[nodes.length * 2];
+            for (int i = 0; i < nodes.length; i++) {
+                n[i] = nodes[i];
+            }
+            nodes = n;
+        }
+    }
+
+    // Nodo simple que contiene handle y vecinos como arreglo dinámico
+    private static final class Node {
+
+        final String handle;
+        String[] neighbors;
+
+        Node(final String handle, final String[] neighbors) {
+            this.handle = handle;
+            this.neighbors = neighbors == null ? new String[0] : neighbors;
+        }
+
+        boolean addNeighborIfAbsent(final String to) {
+            for (int i = 0; i < neighbors.length; i++) {
+                if (neighbors[i].equals(to)) {
+                    return false;
+                }
+            }
+            // agregar
+            final String[] n = new String[neighbors.length + 1];
+            for (int i = 0; i < neighbors.length; i++) {
+                n[i] = neighbors[i];
+            }
+            n[neighbors.length] = to;
+            neighbors = n;
+            return true;
+        }
+
+        boolean removeNeighbor(final String to) {
+            int idx = -1;
+            for (int i = 0; i < neighbors.length; i++) {
+                if (neighbors[i].equals(to)) {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx < 0) {
+                return false;
+            }
+            final String[] n = new String[neighbors.length - 1];
+            for (int i = 0, j = 0; i < neighbors.length; i++) {
+                if (i == idx) {
+                    continue;
+                }
+                n[j++] = neighbors[i];
+            }
+            neighbors = n;
+            return true;
+        }
+    }
+
+    /**
+     * Vista simple e inmutable de la adyacencia.
+     */
+    public static final class AdjacencyView {
+
+        private final String[] users;
+        private final String[][] neighbors;
+
+        AdjacencyView(final String[] users, final String[][] neighbors) {
+            this.users = users == null ? new String[0] : users.clone();
+            this.neighbors = neighbors == null ? new String[0][] : deepClone(neighbors);
+        }
+
+        public String[] users() {
+            return users.clone();
+        }
+
+        public String[][] neighbors() {
+            return deepClone(neighbors);
+        }
+
+        public String[] neighborsOf(final String user) {
+            if (user == null) {
+                return new String[0];
+            }
+            for (int i = 0; i < users.length; i++) {
+                if (users[i].equals(user)) {
+                    return neighbors[i].clone();
+                }
+            }
+            return new String[0];
+        }
+
+        private static String[][] deepClone(final String[][] src) {
+            final String[][] out = new String[src.length][];
+            for (int i = 0; i < src.length; i++) {
+                out[i] = src[i] == null ? new String[0] : src[i].clone();
+            }
+            return out;
+        }
+    }
+
 }
