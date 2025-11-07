@@ -3,24 +3,24 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/domain/User.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/io/GraphFileWriter.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/ui/RemoveRelationDialog.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/ui/MainFrame.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/services/GraphService.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/domain/GraphUtils.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/ui/AddRelationDialog.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/util/ColorPalette.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/util/UnsavedChangesTracker.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/ui/AddUserDialog.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/io/GraphFileParser.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/ui/AboutDialog.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/ui/RemoveUserDialog.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/domain/DirectedGraph.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/app/Main.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/util/Alerts.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/ui/GraphPanel.java</file>
-            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/Proyecto%20%231%20EDD%20Carolina%20Dib/src/domain/KosarajuSCC.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/app/Main.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/ui/AboutDialog.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/domain/GraphUtils.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/services/GraphService.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/domain/KosarajuSCC.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/ui/AddRelationDialog.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/io/GraphFileWriter.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/ui/GraphPanel.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/domain/User.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/util/Alerts.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/util/ColorPalette.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/util/UnsavedChangesTracker.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/io/GraphFileParser.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/ui/RemoveRelationDialog.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/ui/AddUserDialog.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/ui/RemoveUserDialog.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/domain/DirectedGraph.java</file>
+            <file>file:/C:/Users/carol/OneDrive/Escritorio/Proyecto%20%231%20Estructura%20de%20datos/src/ui/MainFrame.java</file>
         </group>
     </open-files>
 </project-private>

@@ -100,7 +100,8 @@ public class MainFrame extends JFrame { // ventana principal que contiene menús
         add(graphPanel, BorderLayout.CENTER); // panel de grafo centro
         add(buildStatusBar(), BorderLayout.SOUTH); // status bar abajo
 
-        changesTracker.addListener(this::onDirtyStateChanged); // escucha cambios externos
+        
+        changesTracker.addListener((UnsavedChangesTracker.BooleanConsumer) this::onDirtyStateChanged); // escucha cambios externos
         onDirtyStateChanged(changesTracker.hasUnsavedChanges()); // inicializa estado guardado
     }
 
